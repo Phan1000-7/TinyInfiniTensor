@@ -60,31 +60,24 @@ namespace infini
         // TODO: 设计一个算法来回收内存
         // =================================== 作业 ===================================
         
-        used -= size;
-        free_blocks[addr] = size;
-
-        auto it = free_blocks.find(addr);
-
-        // 向前合并
-        if (it != free_blocks.begin()) {
-            auto prev = std::prev(it);
-            if (prev->first + prev->second == addr) {
-            // 前一个块的结尾地址等于当前块的起始地址,可以合并
-            prev->second += it->second;
+        this->used -= size;
+        if (addr + size == this->peak) { // 释放最后一个块
+            this->peak -= size;
+            return;
+        }
+        // 查询是否有相邻的空闲块
+        for (auto it = free_blocks.begin(); it != free_blocks.end(); it++) {
+            if (it->first + it->second == addr) { // 和前面的空闲块相邻
+            it->second += size;
+            return;
+            }
+            if (addr + size == it->first) { // 和后面的空闲块相邻
+            free_blocks[addr] = size + it->second;
             free_blocks.erase(it);
-            it = prev;
+            return;
             }
         }
-
-        // 向后合并
-        auto next = std::next(it);
-        if (next != free_blocks.end()) {
-            if (it->first + it->second == next->first) {
-            // 当前块的结尾地址等于后一个块的起始地址,可以合并
-            it->second += next->second;
-            free_blocks.erase(next);
-            }
-        }
+        free_blocks[addr] = size; // 其余添加到空闲list中。
 
 
     }
