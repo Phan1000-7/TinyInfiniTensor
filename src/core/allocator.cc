@@ -5,12 +5,13 @@ namespace infini
 {
     Allocator::Allocator(Runtime runtime) : runtime(runtime)
     {
+        // used是使用了的内存量
         used = 0;
         peak = 0;
         ptr = nullptr;
 
         // 'alignment' defaults to sizeof(uint64_t), because it is the length of
-        // the longest data type currently supported by the DataType field of
+        // the longest data type currently supported by the DataType field of   alignment涉及的是硬件存储上的对齐，分配的size需要是某整数倍
         // the tensor
         alignment = sizeof(uint64_t);
     }
@@ -23,17 +24,31 @@ namespace infini
         }
     }
 
-    size_t Allocator::alloc(size_t size)
-    {
+    size_t Allocator::alloc(size_t size) {
         IT_ASSERT(this->ptr == nullptr);
         // pad the size to the multiple of alignment
         size = this->getAlignedSize(size);
 
-        // =================================== 作业 ===================================
+        // =================================== 作业
+        // ===================================
         // TODO: 设计一个算法来分配内存，返回起始地址偏移量
-        // =================================== 作业 ===================================
+        // =================================== 作业
+        // ===================================
+        this->used += size;
+        for (auto it = free_blocks.begin(); it != free_blocks.end(); it++) { // 遍历空闲块
+            if (it->second >= size) {
+            size_t addr = it->first;
+            if (it->second > size) {
+                free_blocks[addr + size] = it->second - size;
+            }
+            free_blocks.erase(it);
+            return addr;
+            }
+        }
+        // 在没有空闲块的情况下 peak = used
+        this->peak += size;
+        return this->peak - size;
 
-        return 0;
     }
 
     void Allocator::free(size_t addr, size_t size)
@@ -44,6 +59,34 @@ namespace infini
         // =================================== 作业 ===================================
         // TODO: 设计一个算法来回收内存
         // =================================== 作业 ===================================
+        
+        used -= size;
+        free_blocks[addr] = size;
+
+        auto it = free_blocks.find(addr);
+
+        // 向前合并
+        if (it != free_blocks.begin()) {
+            auto prev = std::prev(it);
+            if (prev->first + prev->second == addr) {
+            // 前一个块的结尾地址等于当前块的起始地址,可以合并
+            prev->second += it->second;
+            free_blocks.erase(it);
+            it = prev;
+            }
+        }
+
+        // 向后合并
+        auto next = std::next(it);
+        if (next != free_blocks.end()) {
+            if (it->first + it->second == next->first) {
+            // 当前块的结尾地址等于后一个块的起始地址,可以合并
+            it->second += next->second;
+            free_blocks.erase(next);
+            }
+        }
+
+
     }
 
     void *Allocator::getPtr()
