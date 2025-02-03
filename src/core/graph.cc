@@ -1,5 +1,8 @@
 #include "core/graph.h"
-#include <algorithm>
+#include "core/op_type.h"
+#include "operators/matmul.h"
+#include "operators/transpose.h"
+#include <algorithm>    
 #include <numeric>
 #include <queue>
 
